@@ -22,7 +22,6 @@ const StudentExam = () => {
   const [answers, setAnswers] = useState<{ [key: number]: string }>({});
   const [examId, setExamId] = useState<string | null>(null);
   const [violationCount, setViolationCount] = useState(0);
-  const [recentWarnings, setRecentWarnings] = useState<string[]>([]);
   const [questions, setQuestions] = useState<any[]>([]);
   const [questionsLoading, setQuestionsLoading] = useState(true);
   const [calibratedPitch, setCalibratedPitch] = useState(0);
@@ -227,27 +226,16 @@ const StudentExam = () => {
       
       console.log('✅ Formatted violation message:', message, 'Type:', violationType);
       
-      // Update violation count
+      // Silently update violation count (no UI alerts for student)
       setViolationCount(prev => {
         const newCount = prev + 1;
-        console.log('✅ Updated violation count:', newCount);
+        console.log('✅ Violation detected silently, count:', newCount);
         return newCount;
       });
       
-      // Update recent warnings (show last 3)
-      setRecentWarnings(prev => {
-        const newWarnings = [message, ...prev].slice(0, 3);
-        console.log('✅ Updated recent warnings:', newWarnings);
-        return newWarnings;
-      });
-      
-      // Show toast notification
-      toast.error(`Violation: ${message}`, {
-        duration: 5000,
-      });
-      
       // Backend already saved the violation to database via WebSocket
-      // No need to save again here - just update UI
+      // Violations are silently detected and reported to admin
+      // No toast notifications or UI warnings shown to student
     },
     enabled: !!examId && !!studentData,
   });
@@ -359,7 +347,7 @@ const StudentExam = () => {
     const tabToken = sessionStorage.getItem('examTabToken');
     if (!compatibilityRaw || !tabToken) {
       toast.error("Please run the compatibility check before starting the exam.");
-      navigate('/student/compatibility');
+      navigate('/compatibility');
       initializationStartedRef.current = false; // Reset on redirect
       return;
     }
@@ -369,7 +357,7 @@ const StudentExam = () => {
       console.error('Invalid compatibility payload', err);
       toast.error("Compatibility data corrupted. Please rerun the checks.");
       sessionStorage.removeItem('compatibilityCheck');
-      navigate('/student/compatibility');
+      navigate('/compatibility');
       initializationStartedRef.current = false; // Reset on redirect
       return;
     }
@@ -378,7 +366,7 @@ const StudentExam = () => {
     const data = sessionStorage.getItem('studentData');
     if (!data) {
       toast.error("Please register first");
-      navigate('/student/register');
+      navigate('/register');
       initializationStartedRef.current = false; // Reset on redirect
       return;
     }
@@ -536,7 +524,7 @@ const StudentExam = () => {
   useEffect(() => {
     const lightingScore = compatibilityInfoRef.current?.lightingScore;
     if (typeof lightingScore === 'number') {
-      if (lightingScore < 35 || lightingScore > 90) {
+      if (lightingScore < 50) {
         toast.warning("Lighting conditions may be suboptimal. Please ensure your face is clearly visible.", {
           duration: 6000,
         });
@@ -966,8 +954,14 @@ const StudentExam = () => {
         })
       });
 
-      setViolationCount(prev => prev + 1);
-      toast.warning("Violation recorded: " + details);
+      // Silently update violation count (no UI alerts for student)
+      setViolationCount(prev => {
+        const newCount = prev + 1;
+        console.log('✅ Violation recorded silently:', type, 'Count:', newCount);
+        return newCount;
+      });
+      // Violations are silently detected and reported to admin
+      // No toast notifications shown to student
     } catch (error) {
       console.error('Error recording violation:', error);
     }
@@ -1135,57 +1129,6 @@ const StudentExam = () => {
               windowFocus={windowFocused}
             />
 
-            {/* Active Alerts */}
-            <Card className={recentWarnings.length > 0 ? 'border-destructive border-2' : ''}>
-              <CardContent className="p-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <AlertTriangle className={`w-4 h-4 ${recentWarnings.length > 0 ? 'text-destructive animate-pulse' : 'text-warning'}`} />
-                  <h3 className={`font-semibold ${recentWarnings.length > 0 ? 'text-destructive' : ''}`}>Active Alerts</h3>
-                  {recentWarnings.length > 0 && (
-                    <Badge variant="destructive" className="ml-auto">
-                      {recentWarnings.length} Active
-                    </Badge>
-                  )}
-                </div>
-                <div className="min-h-[24px]">
-                  {recentWarnings.length > 0 ? (
-                    <div className="flex items-start gap-2">
-                      <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0 animate-pulse" />
-                      <p className="text-sm text-destructive font-medium">{recentWarnings[0]}</p>
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">No violations detected</p>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-
-            {/* Total Violations */}
-            <Card>
-              <CardContent className="p-4 text-center">
-                <p className="text-6xl font-bold text-destructive">{violationCount}</p>
-                <p className="text-sm text-muted-foreground mt-2">Total Violations</p>
-              </CardContent>
-            </Card>
-
-            {/* Recent Warnings */}
-            <Card>
-              <CardContent className="p-4">
-                <h3 className="font-semibold mb-3">Recent Warnings</h3>
-                {recentWarnings.length > 0 ? (
-                  <div className="space-y-2">
-                    {recentWarnings.map((warning, index) => (
-                      <div key={index} className="flex items-start gap-2">
-                        <AlertTriangle className="w-4 h-4 text-destructive mt-0.5 flex-shrink-0" />
-                        <p className="text-sm text-destructive font-medium">{warning}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No warnings yet</p>
-                )}
-              </CardContent>
-            </Card>
           </div>
         </div>
       </div>

@@ -4,10 +4,12 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
+import StudentHomepage from "./pages/StudentHomepage";
 import StudentRegister from "./pages/StudentRegister";
 import StudentVerify from "./pages/StudentVerify";
 import StudentExam from "./pages/StudentExam";
 import CompatibilityCheck from "./pages/CompatibilityCheck";
+import AdminHomepage from "./pages/AdminHomepage";
 import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import AdminMonitor from "./pages/AdminMonitor";
@@ -26,19 +28,28 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* Main Landing Page - Portal Selection */}
           <Route path="/" element={<Index />} />
+          
+          {/* Student Routes */}
+          <Route path="/student" element={<StudentHomepage />} />
           <Route path="/student/register" element={<StudentRegister />} />
-        <Route path="/student/verify" element={<StudentVerify />} />
-        <Route path="/student/compatibility" element={<CompatibilityCheck />} />
-        <Route path="/student/exam" element={<StudentExam />} />
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route path="/admin/dashboard" element={<AdminDashboard />} />
-        <Route path="/admin/subjects" element={<AdminSubjects />} />
-        <Route path="/admin/monitor" element={<AdminMonitor />} />
-        <Route path="/admin/upload-template" element={<ExamTemplateUpload />} />
-        <Route path="/admin/student-report" element={<StudentReport />} />
-        <Route path="/admin/analytics" element={<ExamAnalytics />} />
-        <Route path="*" element={<NotFound />} />
+          <Route path="/student/verify" element={<StudentVerify />} />
+          <Route path="/student/compatibility" element={<CompatibilityCheck />} />
+          <Route path="/student/exam" element={<StudentExam />} />
+          
+          {/* Admin Routes */}
+          <Route path="/admin" element={<AdminHomepage />} />
+          <Route path="/admin/login" element={<AdminLogin />} />
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin/subjects" element={<AdminSubjects />} />
+          <Route path="/admin/monitor" element={<AdminMonitor />} />
+          <Route path="/admin/upload-template" element={<ExamTemplateUpload />} />
+          <Route path="/admin/student-report" element={<StudentReport />} />
+          <Route path="/admin/analytics" element={<ExamAnalytics />} />
+          
+          {/* 404 */}
+          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

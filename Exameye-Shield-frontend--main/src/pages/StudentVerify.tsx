@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Shield, Camera, Mic, Sun, User, ArrowRight } from "lucide-react";
+import { Shield, Camera, Mic, User, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
@@ -13,13 +13,12 @@ const StudentVerify = () => {
   const [studentData, setStudentData] = useState<any>(null);
   const [checks, setChecks] = useState({
     camera: { status: 'waiting', message: 'Waiting...' },
-    microphone: { status: 'waiting', message: 'Waiting...' },
-    lighting: { status: 'waiting', message: 'Waiting...' },
+    sound: { status: 'waiting', message: 'Waiting...' },
     face: { status: 'waiting', message: 'Waiting...' },
   });
   const [verificationStarted, setVerificationStarted] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [microphoneWorking, setMicrophoneWorking] = useState(false);
+  const [soundDetected, setSoundDetected] = useState(false);
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -28,7 +27,7 @@ const StudentVerify = () => {
     const data = sessionStorage.getItem('studentData');
     if (!data) {
       toast.error("Please register first");
-      navigate('/student/register');
+      navigate('/register');
       return;
     }
     setStudentData(JSON.parse(data));
@@ -44,7 +43,7 @@ const StudentVerify = () => {
     setVerificationStarted(true);
     setProgress(0);
 
-    // Step 1: Camera & Microphone Access
+    // Step 1: Camera Access
     setChecks(prev => ({ ...prev, camera: { status: 'checking', message: 'Requesting access...' } }));
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ 
@@ -61,94 +60,54 @@ const StudentVerify = () => {
       setChecks(prev => ({ ...prev, camera: { status: 'success', message: 'Camera connected' } }));
       setProgress(20);
 
-      // Microphone check - Test if audio is actually working with retry logic
-      const checkMicrophoneAudio = async (attemptNumber: number): Promise<boolean> => {
-        try {
-          setChecks(prev => ({ 
-            ...prev, 
-            microphone: { 
-              status: 'checking', 
-              message: attemptNumber === 1 ? 'Testing microphone...' : 'Retrying microphone test...' 
-            } 
-          }));
-          
-          const audioContext = new AudioContext();
-          const source = audioContext.createMediaStreamSource(stream);
-          const analyser = audioContext.createAnalyser();
-          analyser.fftSize = 256;
-          source.connect(analyser);
-          
-          const dataArray = new Uint8Array(analyser.frequencyBinCount);
-          let audioDetected = false;
-          let checkCount = 0;
-          const maxChecks = 40; // 4 seconds
-          
-          // Check for audio input
-          await new Promise((resolve) => {
-            const checkAudio = () => {
-              analyser.getByteFrequencyData(dataArray);
-              const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
-              
-              console.log(`🎤 Microphone test (attempt ${attemptNumber}): audio level = ${average.toFixed(1)}`);
-              
-              if (average >= MICROPHONE_THRESHOLD) {
-                audioDetected = true;
-                console.log(`✅ Audio input detected on attempt ${attemptNumber}!`);
-                resolve(null);
-              } else {
-                checkCount++;
-                if (checkCount >= maxChecks) {
-                  console.log(`❌ No audio input detected after 3 seconds (attempt ${attemptNumber})`);
-                  resolve(null);
-                } else {
-                  setTimeout(checkAudio, 100);
-                }
-              }
-            };
-            checkAudio();
-          });
-          
-          audioContext.close();
-          return audioDetected;
-        } catch (audioError) {
-          console.error(`Audio test error (attempt ${attemptNumber}):`, audioError);
-          return false;
-        }
-      };
+      // Sound detection - Simple check if sound is coming or not
+      setChecks(prev => ({ ...prev, sound: { status: 'checking', message: 'Checking for sound...' } }));
       
-      // Try microphone check - retry once if first attempt fails
-      let audioDetected = false;
-      audioDetected = await checkMicrophoneAudio(1);
+      const audioContext = new AudioContext();
+      const source = audioContext.createMediaStreamSource(stream);
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 256;
+      source.connect(analyser);
       
-      // If first attempt failed, retry once
-      if (!audioDetected) {
-        console.log('🔄 First microphone check failed, retrying...');
-        setChecks(prev => ({ 
-          ...prev, 
-          microphone: { 
-            status: 'checking', 
-            message: 'First attempt failed - Retrying microphone test...' 
-          } 
-        }));
-        
-        // Wait a moment before retry
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Retry the check
-        audioDetected = await checkMicrophoneAudio(2);
-      }
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      let soundDetected = false;
+      let checkCount = 0;
+      const maxChecks = 40; // 4 seconds
       
-      // Update UI based on final result
-      if (audioDetected) {
-        setChecks(prev => ({ ...prev, microphone: { status: 'success', message: 'Microphone working - Audio detected' } }));
-        setMicrophoneWorking(true);
-        toast.success("Microphone is working properly!");
+      // Check for sound input
+      await new Promise((resolve) => {
+        const checkSound = () => {
+          analyser.getByteFrequencyData(dataArray);
+          const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+          
+          console.log(`🔊 Sound check: audio level = ${average.toFixed(1)}`);
+          
+          if (average >= MICROPHONE_THRESHOLD) {
+            soundDetected = true;
+            console.log(`✅ Sound detected!`);
+            resolve(null);
+          } else {
+            checkCount++;
+            if (checkCount >= maxChecks) {
+              console.log(`❌ No sound detected after 4 seconds`);
+              resolve(null);
+            } else {
+              setTimeout(checkSound, 100);
+            }
+          }
+        };
+        checkSound();
+      });
+      
+      audioContext.close();
+      
+      // Update UI based on result
+      if (soundDetected) {
+        setChecks(prev => ({ ...prev, sound: { status: 'success', message: 'Sound detected' } }));
+        setSoundDetected(true);
       } else {
-        setChecks(prev => ({ ...prev, microphone: { status: 'error', message: 'No audio detected. Please read the sentence aloud and try again.' } }));
-        setMicrophoneWorking(false);
-        toast.error("Microphone test failed. Please read the sentence aloud so we can calibrate your microphone, then retry.", {
-          duration: 8000
-        });
+        setChecks(prev => ({ ...prev, sound: { status: 'error', message: 'No sound detected' } }));
+        setSoundDetected(false);
       }
       
       setProgress(40);
@@ -156,8 +115,8 @@ const StudentVerify = () => {
       // Step 2: Wait for camera to be ready
       await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // Step 3: Environment Check - Use proctoring backend service
-      setChecks(prev => ({ ...prev, lighting: { status: 'checking', message: 'Analyzing environment...' } }));
+      // Step 3: Face Detection Check - Use proctoring backend service
+      setChecks(prev => ({ ...prev, face: { status: 'checking', message: 'Verifying face position...' } }));
       
       if (videoRef.current) {
         try {
@@ -194,20 +153,8 @@ const StudentVerify = () => {
           
           const envResult = await envResponse.json();
           console.log('Environment check result:', envResult);
-          
-          // Update lighting check - Show actual result
-          setChecks(prev => ({ 
-            ...prev, 
-            lighting: { 
-              status: envResult.lighting_ok ? 'success' : 'warning',
-              message: envResult.lighting_ok ? 'Good lighting detected' : 'Poor lighting - Please improve lighting'
-            } 
-          }));
-          setProgress(60);
 
           // Update face detection check - Show actual result
-          setChecks(prev => ({ ...prev, face: { status: 'checking', message: 'Verifying face position...' } }));
-          
           setChecks(prev => ({ 
             ...prev, 
             face: { 
@@ -245,9 +192,9 @@ const StudentVerify = () => {
           
           // STRICT VALIDATION - All checks must pass
           
-          // Check 1: Microphone MUST be working
-          if (!microphoneWorking) {
-            toast.error("Microphone test failed! Please speak or make noise to test your microphone, then try verification again.", {
+          // Check 1: Sound MUST be detected
+          if (!soundDetected) {
+            toast.error("No sound detected! Please make some noise or speak to test sound detection, then try verification again.", {
               duration: 6000
             });
             setVerificationStarted(false);
@@ -261,16 +208,6 @@ const StudentVerify = () => {
             return; // Block exam start
           }
           
-          // Check 3: Lighting MUST be adequate (STRICT - NO LONGER JUST WARNING)
-          if (!envResult.lighting_ok) {
-            toast.error("Poor lighting detected! Please improve lighting conditions and try verification again.", {
-              description: "Move to a well-lit area or turn on lights",
-              duration: 6000
-            });
-            setVerificationStarted(false);
-            return; // Block exam start
-          }
-          
         } catch (error) {
           console.error('Verification error:', error);
           console.error('Error details:', error instanceof Error ? error.message : String(error));
@@ -279,7 +216,6 @@ const StudentVerify = () => {
           // Show actual error - don't allow proceeding with bad setup
           setChecks(prev => ({ 
             ...prev, 
-            lighting: { status: 'error', message: 'Unable to verify - Service unavailable' },
             face: { status: 'error', message: 'Unable to verify - Service unavailable' }
           }));
           
@@ -295,14 +231,14 @@ const StudentVerify = () => {
       toast.success("Verification complete! Proceeding to compatibility checks...");
       
       setTimeout(() => {
-        navigate('/student/compatibility');
+        navigate('/compatibility');
       }, 1500);
 
     } catch (error: any) {
       console.error('Verification error:', error);
       if (error.name === 'NotAllowedError') {
         setChecks(prev => ({ ...prev, camera: { status: 'error', message: 'Access denied' } }));
-        toast.error("Please allow camera and microphone access");
+        toast.error("Please allow camera access");
       } else {
         toast.error("Verification failed: " + error.message);
       }
@@ -359,18 +295,10 @@ const StudentVerify = () => {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  {getStatusIcon(checks.microphone.status, Mic)}
+                  {getStatusIcon(checks.sound.status, Mic)}
                   <div className="flex-1">
-                    <p className="font-semibold">Microphone Access</p>
-                    <p className="text-sm text-muted-foreground">{checks.microphone.message}</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  {getStatusIcon(checks.lighting.status, Sun)}
-                  <div className="flex-1">
-                    <p className="font-semibold">Lighting Conditions</p>
-                    <p className="text-sm text-muted-foreground">{checks.lighting.message}</p>
+                    <p className="font-semibold">Sound Detection</p>
+                    <p className="text-sm text-muted-foreground">{checks.sound.message}</p>
                   </div>
                 </div>
 
@@ -404,10 +332,6 @@ const StudentVerify = () => {
             <ul className="space-y-2">
               <li className="flex items-center gap-2 text-sm">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                Ensure you're in a well-lit room
-              </li>
-              <li className="flex items-center gap-2 text-sm">
-                <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
                 Position yourself at the center of the camera
               </li>
               <li className="flex items-center gap-2 text-sm">
@@ -416,7 +340,7 @@ const StudentVerify = () => {
               </li>
               <li className="flex items-center gap-2 text-sm">
                 <span className="w-1.5 h-1.5 rounded-full bg-primary"></span>
-                Remove any background noise
+                Make some sound to verify audio detection
               </li>
             </ul>
           </CardContent>

@@ -51,7 +51,7 @@ const ExamAnalytics = () => {
     const isAuthenticated = sessionStorage.getItem('adminAuth');
     if (!isAuthenticated) {
       toast.error("Please login as admin");
-      navigate('/admin/login');
+      navigate('/login');
       return;
     }
 
@@ -315,7 +315,7 @@ const ExamAnalytics = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => navigate('/admin/dashboard')}>
+              <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div className="flex items-center gap-2">

@@ -26,6 +26,7 @@ interface SubjectStudentRow {
 interface SubjectGroup {
   subjectName: string;
   subjectCode: string;
+  createdBy?: string;
   students: SubjectStudentRow[];
 }
 
@@ -92,7 +93,7 @@ const AdminSubjects = () => {
     const isAuthenticated = sessionStorage.getItem("adminAuth");
     if (!isAuthenticated) {
       toast.error("Please login as admin");
-      navigate("/admin/login");
+      navigate("/login");
       return;
     }
 
@@ -117,7 +118,8 @@ const AdminSubjects = () => {
               ),
               exam_templates (
                 subject_name,
-                subject_code
+                subject_code,
+                created_by
               )
             `)
             .order("started_at", { ascending: false }),
@@ -155,12 +157,14 @@ const AdminSubjects = () => {
         exam.exam_templates?.subject_name || exam.subject_name || "Unnamed Subject";
       const subjectCode =
         exam.exam_templates?.subject_code || exam.subject_code || "N/A";
+      const createdBy = exam.exam_templates?.created_by || 'Admin';
       const mapKey = `${subjectCode}__${subjectName}`;
 
       if (!subjectMap.has(mapKey)) {
         subjectMap.set(mapKey, {
           subjectCode,
           subjectName,
+          createdBy,
           students: [],
         });
       }
@@ -232,7 +236,7 @@ const AdminSubjects = () => {
       toast.error("Missing exam or student identifier");
       return;
     }
-    navigate(`/admin/student-report?studentId=${encodeURIComponent(studentId)}&examId=${encodeURIComponent(examId)}`);
+    navigate(`/student-report?studentId=${encodeURIComponent(studentId)}&examId=${encodeURIComponent(examId)}`);
   };
 
   return (
@@ -246,7 +250,7 @@ const AdminSubjects = () => {
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" onClick={() => navigate("/admin/dashboard")}>
+            <Button variant="outline" onClick={() => navigate("/dashboard")}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Dashboard
             </Button>
@@ -290,9 +294,14 @@ const AdminSubjects = () => {
                     {subject.subjectName}{" "}
                     <span className="text-muted-foreground text-base">({subject.subjectCode})</span>
                   </CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    {subject.students.length} {subject.students.length === 1 ? "student" : "students"}
-                  </p>
+                  <div className="space-y-1">
+                    <p className="text-sm text-muted-foreground">
+                      {subject.students.length} {subject.students.length === 1 ? "student" : "students"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Created by: {subject.createdBy || 'Admin'}
+                    </p>
+                  </div>
                 </div>
               </CardHeader>
               <CardContent className="overflow-x-auto">

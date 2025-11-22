@@ -166,13 +166,16 @@ const ExamTemplateUpload = () => {
         return;
       }
 
+      // Get admin name from sessionStorage or auth
+      const adminName = sessionStorage.getItem('adminName') || 'Admin';
+      
       // Create exam template with subject info
       const { data: templateData, error: templateError } = await supabase
         .from('exam_templates')
         .insert({
           template_name: templateName.trim(),
           total_questions: questions.length,
-          created_by: 'admin',
+          created_by: adminName,
           subject_code: subjectCode,
           subject_name: subjectName,
           duration_minutes: duration
@@ -213,7 +216,7 @@ const ExamTemplateUpload = () => {
       toast.success(`Template "${templateName}" uploaded with ${questions.length} questions for ${subjectName}!`);
       
       setTimeout(() => {
-        navigate('/admin/dashboard');
+        navigate('/dashboard');
       }, 1500);
 
     } catch (error: any) {
@@ -231,7 +234,7 @@ const ExamTemplateUpload = () => {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => navigate('/admin/dashboard')}
+            onClick={() => navigate('/dashboard')}
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>

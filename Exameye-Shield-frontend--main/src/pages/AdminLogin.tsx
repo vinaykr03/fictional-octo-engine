@@ -34,14 +34,14 @@ const AdminLogin = () => {
       setAzureLoading(false);
       setLoading(false);
       toast.success(`Welcome back, ${adminName}!`);
-      navigate("/admin/dashboard", { replace: true });
+      navigate("/dashboard", { replace: true });
     },
     [navigate]
   );
 
   useEffect(() => {
     if (sessionStorage.getItem("adminAuth") === "true") {
-      navigate("/admin/dashboard", { replace: true });
+      navigate("/dashboard", { replace: true });
       return;
     }
 
@@ -55,8 +55,27 @@ const AdminLogin = () => {
         handleSuccessfulAuth(session);
       }
 
-      const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
         if (session) {
+          // If user just confirmed email or signed in, ensure display name is set
+          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            const userMetadata = session.user?.user_metadata;
+            const hasName = userMetadata?.name || userMetadata?.full_name || userMetadata?.display_name;
+            
+            // If name exists in metadata but might not be showing in display name, update it
+            if (hasName && !userMetadata?.full_name) {
+              try {
+                await supabase.auth.updateUser({
+                  data: {
+                    full_name: userMetadata?.name || userMetadata?.display_name || hasName,
+                    display_name: userMetadata?.name || userMetadata?.display_name || hasName,
+                  }
+                });
+              } catch (err) {
+                console.warn("Could not update user metadata:", err);
+              }
+            }
+          }
           handleSuccessfulAuth(session);
         } else {
           sessionStorage.removeItem("adminAuth");
@@ -96,19 +115,46 @@ const AdminLogin = () => {
 
     try {
       if (mode === "signup") {
-        const { error } = await supabase.auth.signUp({
+        const trimmedName = fullName.trim();
+        
+        const { data: signUpData, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
             data: {
               role: "admin",
-              name: fullName.trim(),
+              name: trimmedName,
+              full_name: trimmedName,
+              display_name: trimmedName,
             },
+            emailRedirectTo: window.location.origin + "/login",
           },
         });
 
         if (error) {
           throw error;
+        }
+
+        // Update user metadata immediately after signup to ensure display name is visible
+        // This works even if email confirmation is required
+        if (signUpData.user) {
+          try {
+            const { error: updateError } = await supabase.auth.updateUser({
+              data: {
+                name: trimmedName,
+                full_name: trimmedName,
+                display_name: trimmedName,
+              }
+            });
+            
+            if (updateError) {
+              console.warn("Failed to update user metadata:", updateError);
+            } else {
+              console.log("User metadata updated successfully");
+            }
+          } catch (updateErr) {
+            console.warn("Error updating user metadata:", updateErr);
+          }
         }
 
         toast.success("Registration successful!");
@@ -142,7 +188,7 @@ const AdminLogin = () => {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "azure",
         options: {
-          redirectTo: `${window.location.origin}/admin/login`,
+          redirectTo: `${window.location.origin}/login`,
           scopes: "openid profile email",
           queryParams: {
             prompt: "login",

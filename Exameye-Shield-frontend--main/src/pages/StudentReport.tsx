@@ -27,6 +27,7 @@ interface StudentReportData {
     status: string;
     subject_name: string;
     duration_minutes: number;
+    created_by?: string;
   };
   answers: Array<{
     question_number: number;
@@ -60,13 +61,13 @@ const StudentReport = () => {
     const isAuthenticated = sessionStorage.getItem('adminAuth');
     if (!isAuthenticated) {
       toast.error("Please login as admin");
-      navigate('/admin/login');
+      navigate('/login');
       return;
     }
 
     if (!studentId || !examId) {
       toast.error("Missing student or exam information");
-      navigate('/admin/dashboard');
+      navigate('/dashboard');
       return;
     }
 
@@ -228,7 +229,8 @@ const StudentReport = () => {
             ),
             exam_templates (
               subject_name,
-              duration_minutes
+              duration_minutes,
+              created_by
             )
           `)
           .eq('id', examId)
@@ -266,7 +268,8 @@ const StudentReport = () => {
             ),
             exam_templates (
               subject_name,
-              duration_minutes
+              duration_minutes,
+              created_by
             )
           `)
           .or(`student_id.eq.${studentData.student_id || studentData.id},students.student_id.eq.${studentData.student_id || studentData.id}`)
@@ -728,6 +731,7 @@ const StudentReport = () => {
           status: examData.status || 'unknown',
           subject_name: examData.exam_templates?.subject_name || examData.subject_name || (violationsData[0]?.details as any)?.subject_name || (violationsData[0]?.details as any)?.subject_code || 'N/A',
           duration_minutes: examData.exam_templates?.duration_minutes || 0,
+          created_by: examData.exam_templates?.created_by || 'Admin',
         } : {
           id: '',
           subject_code: 'N/A',
@@ -1010,7 +1014,7 @@ const StudentReport = () => {
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
           <p className="text-muted-foreground">No report data found</p>
-          <Button onClick={() => navigate('/admin/dashboard')} className="mt-4">
+          <Button onClick={() => navigate('/dashboard')} className="mt-4">
             Back to Dashboard
           </Button>
         </div>
@@ -1027,7 +1031,7 @@ const StudentReport = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Button variant="ghost" size="icon" onClick={() => navigate('/admin/dashboard')}>
+              <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
                 <ArrowLeft className="w-5 h-5" />
               </Button>
               <div>
@@ -1102,6 +1106,10 @@ const StudentReport = () => {
               <div>
                 <p className="text-sm text-muted-foreground">Subject Code</p>
                 <p className="font-medium">{reportData.exam.subject_code}</p>
+              </div>
+              <div>
+                <p className="text-sm text-muted-foreground">Created By</p>
+                <p className="font-medium">{reportData.exam.created_by || 'Admin'}</p>
               </div>
               <div className="flex items-center gap-4">
                 <div>

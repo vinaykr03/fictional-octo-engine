@@ -95,7 +95,7 @@ const AdminDashboard = () => {
     const isAuthenticated = sessionStorage.getItem('adminAuth');
     if (!isAuthenticated) {
       toast.error("Please login as admin");
-      navigate('/admin/login');
+      navigate('/login');
       return;
     }
 
@@ -155,7 +155,8 @@ const AdminDashboard = () => {
           ),
           exam_templates (
             subject_name,
-            subject_code
+            subject_code,
+            created_by
           )
         `)
         .order('started_at', { ascending: false });
@@ -657,7 +658,7 @@ const AdminDashboard = () => {
       sessionStorage.removeItem('adminName');
       sessionStorage.removeItem('adminOAuthPending');
       toast.success("Logged out");
-      navigate('/admin/login');
+      navigate('/login');
     }
   };
 
@@ -811,15 +812,15 @@ const AdminDashboard = () => {
             </div>
           </div>
           <div className="flex gap-2">
-            <Button variant="default" size="sm" onClick={() => navigate('/admin/analytics')}>
+            <Button variant="default" size="sm" onClick={() => navigate('/analytics')}>
               <Activity className="w-4 h-4 mr-2" />
               Analytics
             </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/admin/monitor')}>
+            <Button variant="outline" size="sm" onClick={() => navigate('/monitor')}>
               <Monitor className="w-4 h-4 mr-2" />
               Live Monitor
             </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/admin/subjects')}>
+            <Button variant="outline" size="sm" onClick={() => navigate('/subjects')}>
               <BookOpen className="w-4 h-4 mr-2" />
               Subjects
             </Button>
@@ -831,7 +832,7 @@ const AdminDashboard = () => {
               <Download className="w-4 h-4 mr-2" />
               Export CSV
             </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate('/admin/upload-template')}>
+            <Button variant="outline" size="sm" onClick={() => navigate('/upload-template')}>
               <Upload className="w-4 h-4 mr-2" />
               Upload Template
             </Button>
@@ -1077,7 +1078,7 @@ const AdminDashboard = () => {
                               ? student.id 
                               : (student.studentId !== 'unknown' ? student.studentId : student.id);
                             
-                            navigate(`/admin/student-report?studentId=${studentIdForReport}&examId=${examId || ''}`);
+                            navigate(`/student-report?studentId=${studentIdForReport}&examId=${examId || ''}`);
                           }}
                         >
                           <Eye className="w-4 h-4 mr-1" />
@@ -1196,7 +1197,7 @@ const AdminDashboard = () => {
                                 : student.studentIdentifier;
 
                             navigate(
-                              `/admin/student-report?studentId=${studentIdForReport || ""}&examId=${student.examId || ""}`
+                              `/student-report?studentId=${studentIdForReport || ""}&examId=${student.examId || ""}`
                             );
                           }}
                         >

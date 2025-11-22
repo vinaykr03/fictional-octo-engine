@@ -288,7 +288,7 @@ const StudentRegister = () => {
       }));
 
       setTimeout(() => {
-        navigate('/student/verify');
+        navigate('/verify');
       }, 1500);
 
     } catch (error: any) {

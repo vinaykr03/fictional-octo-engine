@@ -60,7 +60,8 @@ const AdminMonitor = () => {
         ),
         exam_templates (
           subject_name,
-          subject_code
+          subject_code,
+          created_by
         )
       `)
       .eq('status', 'in_progress')
@@ -92,7 +93,7 @@ const AdminMonitor = () => {
     const isAuthenticated = sessionStorage.getItem('adminAuth');
     if (!isAuthenticated) {
       toast.error("Please login as admin");
-      navigate('/admin/login');
+      navigate('/login');
       return;
     }
 
@@ -292,7 +293,7 @@ const AdminMonitor = () => {
       <header className="border-b bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <Button variant="ghost" size="icon" onClick={() => navigate('/admin/dashboard')}>
+            <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')}>
               <ArrowLeft className="w-5 h-5" />
             </Button>
             <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center">
@@ -424,6 +425,7 @@ const AdminMonitor = () => {
                         <div className="text-xs text-muted-foreground">
                           <p><span className="font-medium">Subject:</span> {exam.exam_templates?.subject_name || exam.subject_code}</p>
                           <p><span className="font-medium">Code:</span> {exam.exam_templates?.subject_code || exam.subject_code}</p>
+                          <p><span className="font-medium">Created by:</span> {exam.exam_templates?.created_by || 'Admin'}</p>
                           <p><span className="font-medium">Last heartbeat:</span> {exam.last_activity ? formatTime(exam.last_activity) : 'N/A'}</p>
                         </div>
 
