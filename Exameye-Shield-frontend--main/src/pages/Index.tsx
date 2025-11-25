@@ -1,23 +1,73 @@
-import { Shield, User, Lock, ArrowRight } from "lucide-react";
+import { Shield, User, Lock, ArrowRight, Maximize2, Minimize2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { toast } from "sonner";
 
 const Index = () => {
   const navigate = useNavigate();
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Check fullscreen status
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    // Check initial state
+    setIsFullscreen(!!document.fullscreenElement);
+
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  const toggleFullscreen = async () => {
+    try {
+      if (!document.fullscreenElement) {
+        await document.documentElement.requestFullscreen();
+        setIsFullscreen(true);
+        toast.success("Entered fullscreen mode");
+      } else {
+        await document.exitFullscreen();
+        setIsFullscreen(false);
+        toast.success("Exited fullscreen mode");
+      }
+    } catch (error) {
+      toast.error("Failed to toggle fullscreen. Please try using F11 or browser controls.");
+      console.error("Fullscreen error:", error);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20 flex flex-col">
       {/* Header */}
       <header className="border-b bg-card/50 backdrop-blur-sm">
-        <div className="container mx-auto px-4 py-4 flex items-center gap-3">
-          <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shadow-lg">
-            <Shield className="w-7 h-7 text-primary-foreground" />
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-xl bg-primary flex items-center justify-center shadow-lg">
+              <Shield className="w-7 h-7 text-primary-foreground" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-extrabold text-foreground tracking-tight">ExamEye Shield</h1>
+              <p className="text-sm text-muted-foreground font-medium">AI-Powered Exam Proctoring System</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-extrabold text-foreground tracking-tight">ExamEye Shield</h1>
-            <p className="text-sm text-muted-foreground font-medium">AI-Powered Exam Proctoring System</p>
-          </div>
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={toggleFullscreen}
+            className="shrink-0"
+            title={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
+          >
+            {isFullscreen ? (
+              <Minimize2 className="h-4 w-4" />
+            ) : (
+              <Maximize2 className="h-4 w-4" />
+            )}
+          </Button>
         </div>
       </header>
 

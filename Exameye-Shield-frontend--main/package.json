@@ -3,6 +3,10 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
   "scripts": {
     "dev": "vite",
     "dev:student": "cross-env VITE_APP_TYPE=student vite",
@@ -13,7 +17,8 @@
     "start:admin": "cross-env VITE_APP_TYPE=admin vite",
     "build": "vite build",
     "build:student": "cross-env VITE_APP_TYPE=student vite build",
-    "build:admin": "cross-env VITE_APP_TYPE=admin vite build",
+    "build:admin": "cross-env VITE_APP_TYPE=admin vite build && node scripts/copy-admin-html.js",
+    "build:all": "node scripts/build-all.js",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "preview": "vite preview"

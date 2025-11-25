@@ -179,11 +179,24 @@ const StudentExam = () => {
 
   const requestFullscreenGuard = useCallback(() => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen().catch(() => {
-        toast.warning("Fullscreen permission is required. Please enable fullscreen mode.", {
-          duration: 5000,
+      // Try multiple fullscreen methods for better browser compatibility
+      const docEl = document.documentElement as any;
+      const requestFullscreen = docEl.requestFullscreen || 
+                               docEl.webkitRequestFullscreen || 
+                               docEl.mozRequestFullScreen || 
+                               docEl.msRequestFullscreen;
+      
+      if (requestFullscreen) {
+        requestFullscreen.call(docEl).catch((error: any) => {
+          console.error('Fullscreen request failed:', error);
+          toast.error("Please click anywhere on the screen and try entering fullscreen again.", {
+            duration: 8000,
+            description: "Fullscreen is required for exam security"
+          });
         });
-      });
+      } else {
+        toast.error("Your browser doesn't support fullscreen mode");
+      }
     }
   }, []);
 
@@ -399,7 +412,24 @@ const StudentExam = () => {
       console.log('✅ Exam started, examId:', startedExamId);
       console.log('✅ Loading questions and initializing proctoring system...');
       
+      // Add click handler to enable fullscreen on user interaction
+      const enableFullscreenOnClick = () => {
+        requestFullscreenGuard();
+        document.removeEventListener('click', enableFullscreenOnClick);
+      };
+      
+      // Request fullscreen immediately
       requestFullscreenGuard();
+      
+      // If immediate request fails, wait for user click
+      setTimeout(() => {
+        if (!document.fullscreenElement) {
+          document.addEventListener('click', enableFullscreenOnClick);
+          toast.warning("Click anywhere to enable fullscreen mode (required for exam)", {
+            duration: 10000
+          });
+        }
+      }, 1000);
       
       // Initialize proctoring monitoring (camera, microphone, WebSocket)
       try {
@@ -1005,6 +1035,11 @@ const StudentExam = () => {
               <Clock className="w-4 h-4" />
               <span className="text-lg font-mono font-bold">{formatTime(timeRemaining)}</span>
             </div>
+            {!document.fullscreenElement && (
+              <Button variant="outline" size="sm" onClick={requestFullscreenGuard} className="mr-2">
+                📺 Enable Fullscreen
+              </Button>
+            )}
             <Button variant="destructive" size="sm" onClick={handleSubmit}>
               <LogOut className="w-4 h-4 mr-2" />
               End Exam
