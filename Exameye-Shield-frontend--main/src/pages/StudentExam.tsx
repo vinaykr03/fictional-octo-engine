@@ -1118,6 +1118,24 @@ const StudentExam = () => {
                   ))}
                   </div>
                 )}
+                
+                {/* Submit Exam Section */}
+                <div className="mt-12 p-8 border-2 border-green-200 rounded-lg bg-green-50">
+                  <div className="text-center">
+                    <h3 className="text-2xl font-bold text-green-800 mb-4">Ready to Submit?</h3>
+                    <p className="text-green-700 mb-6">
+                      Review your answers above. Once submitted, you cannot make changes.
+                    </p>
+                    <Button 
+                      onClick={handleSubmit}
+                      size="lg"
+                      className="bg-green-600 hover:bg-green-700 text-white px-12 py-4 text-lg font-semibold"
+                    >
+                      <LogOut className="w-5 h-5 mr-2" />
+                      Submit Exam & Return Home
+                    </Button>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>

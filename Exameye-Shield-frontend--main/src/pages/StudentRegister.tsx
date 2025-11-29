@@ -224,6 +224,9 @@ const StudentRegister = () => {
     setLoading(true);
 
     try {
+      const normalizedRollNo = formData.rollNo.trim().toUpperCase();
+      const normalizedEmail = formData.email.trim();
+      const studentName = formData.name.trim();
       // Validate subject code exists
       const { data: templateData, error: templateError } = await supabase
         .from('exam_templates')
@@ -239,19 +242,50 @@ const StudentRegister = () => {
 
       const subjectCode = formData.subjectCode.trim().toUpperCase();
 
-      // Insert student (without face_image_url first)
-      const { data: studentData, error: studentError } = await supabase
+      // Check if student already exists for this roll number AND subject code
+      const { data: existingStudent } = await supabase
         .from('students')
-        .insert({
-          name: formData.name.trim(),
-          email: formData.email.trim(),
-          roll_no: formData.rollNo.trim().toUpperCase(),
-          subject_code: subjectCode,
-        })
-        .select()
-        .single();
+        .select('*')
+        .eq('roll_no', normalizedRollNo)
+        .eq('subject_code', subjectCode)
+        .maybeSingle();
 
-      if (studentError) throw studentError;
+      let studentData = existingStudent;
+
+      if (existingStudent) {
+        // Update existing student details for same roll_no + subject_code
+        const { data: updatedStudent, error: updateError } = await supabase
+          .from('students')
+          .update({
+            name: studentName,
+            email: normalizedEmail,
+          })
+          .eq('id', existingStudent.id)
+          .select()
+          .single();
+
+        if (updateError) throw updateError;
+        studentData = updatedStudent;
+      } else {
+        // Insert new student record for this roll_no + subject_code combination
+        const { data: newStudent, error: studentError } = await supabase
+          .from('students')
+          .insert({
+            name: studentName,
+            email: normalizedEmail,
+            roll_no: normalizedRollNo,
+            subject_code: subjectCode,
+          })
+          .select()
+          .single();
+
+        if (studentError || !newStudent) throw studentError;
+        studentData = newStudent;
+      }
+
+      if (!studentData) {
+        throw new Error("Failed to load student record.");
+      }
 
       // Upload face image (using roll_no for file organization)
       const faceUrl = await uploadFaceImage(studentData.roll_no, studentData.name);
@@ -262,17 +296,37 @@ const StudentRegister = () => {
         .update({ face_image_url: faceUrl })
         .eq('id', studentData.id);
 
-      // Create exam session
-      const { error: examError } = await supabase
+      // Check if exam already exists for this subject and student
+      const { data: existingExam } = await supabase
         .from('exams')
-        .insert({
-          student_id: studentData.id,
-          subject_code: subjectCode,
-          exam_template_id: templateData.id,
-          status: 'not_started',
-        });
+        .select('id, status')
+        .eq('student_id', studentData.id)
+        .eq('subject_code', subjectCode)
+        .maybeSingle();
 
-      if (examError) throw examError;
+      if (existingExam) {
+        // Reset exam status so student can retake for this subject
+        await supabase
+          .from('exams')
+          .update({ 
+            status: 'not_started',
+            started_at: null,
+            completed_at: null,
+          })
+          .eq('id', existingExam.id);
+      } else {
+        // Create exam session for this subject
+        const { error: examError } = await supabase
+          .from('exams')
+          .insert({
+            student_id: studentData.id,
+            subject_code: subjectCode,
+            exam_template_id: templateData.id,
+            status: 'not_started',
+          });
+
+        if (examError) throw examError;
+      }
 
       toast.success(`Registration successful for ${templateData.subject_name}!`, {
         duration: 5000,

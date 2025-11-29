@@ -1,0 +1,1 @@
+ALTER TABLE public.students DROP CONSTRAINT IF EXISTS students_email_subject_code_key;
